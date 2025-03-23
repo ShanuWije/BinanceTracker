@@ -18,9 +18,9 @@ st.set_page_config(
 )
 
 # App title and description
-st.title("📊 Binance Futures High Volume Cryptocurrencies")
+st.title("📊 Binance US High Volume Cryptocurrencies")
 st.markdown("""
-This app displays real-time data for the highest volume cryptocurrencies on Binance Futures market.
+This app displays real-time data for the highest volume cryptocurrencies on Binance US spot market.
 Data is automatically refreshed every minute.
 """)
 

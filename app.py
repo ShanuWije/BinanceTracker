@@ -18,9 +18,9 @@ st.set_page_config(
 )
 
 # App title and description
-st.title("📊 Binance High Volume Cryptocurrencies")
+st.title("📊 Binance Futures High Volume Cryptocurrencies")
 st.markdown("""
-This app displays real-time data for the highest volume cryptocurrencies on Binance.US.
+This app displays real-time data for the highest volume cryptocurrencies on Binance Futures market.
 Data is automatically refreshed every minute.
 """)
 
@@ -60,7 +60,7 @@ main_container = st.container()
 def display_data():
     with main_container:
         # Show a spinner while loading data
-        with st.spinner("Fetching latest data from Binance.US..."):
+        with st.spinner("Fetching latest data from Binance Futures..."):
             df, error = load_data(period, num_coins)
         
         # Display last updated time
@@ -188,10 +188,10 @@ else:
 st.sidebar.markdown("---")
 st.sidebar.markdown("""
 ### About
-This app displays cryptocurrencies with the highest trading volume on Binance.US.
+This app displays cryptocurrencies with the highest trading volume on Binance Futures market.
 
 - **24h**: Shows data for the last 24 hours
 - **7d**: Shows data for the last 7 days
 
-Data is fetched directly from the Binance.US public API.
+Data is fetched directly from the Binance Futures API.
 """)

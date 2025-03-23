@@ -38,13 +38,13 @@ class DataProcessor:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
         
-        # Filter out non-standard trading pairs (keep only USDT pairs for simplicity)
-        # For Binance.US, they use USD as base currency more often
-        df = df[df['symbol'].str.endswith('USD') | df['symbol'].str.endswith('USDT')]
+        # In futures market, most pairs end with USDT, BUSD, or other stablecoins
+        # For simplicity, we'll keep pairs ending with common stablecoins
+        df = df[df['symbol'].str.endswith('USDT') | df['symbol'].str.endswith('BUSD')]
         
         # Calculate additional metrics
-        # Handle both USD and USDT pairs
-        df['baseAsset'] = df['symbol'].str.replace('USD$|USDT$', '', regex=True)
+        # Extract the base asset (e.g., BTC from BTCUSDT)
+        df['baseAsset'] = df['symbol'].str.replace('USDT$|BUSD$', '', regex=True)
         
         return df
     

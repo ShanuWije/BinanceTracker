@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 class BinanceAPI:
     """Class to interact with the Binance public API."""
     
-    # Use Binance.US API as an alternative that may have fewer restrictions
-    BASE_URL = "https://api.binance.us/api/v3"
+    # Use Binance Futures API
+    BASE_URL = "https://fapi.binance.com/fapi/v1"
     
     @staticmethod
     def fetch_24hr_ticker_data() -> Optional[List[Dict]]:
@@ -25,15 +25,31 @@ class BinanceAPI:
         endpoint = f"{BinanceAPI.BASE_URL}/ticker/24hr"
         
         try:
-            # Add user-agent header to avoid potential blockage
+            # Enhanced headers to avoid geo-restrictions
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'application/json',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+                'Referer': 'https://www.binance.com/',
+                'X-Requested-With': 'XMLHttpRequest'
             }
-            response = requests.get(endpoint, headers=headers)
+            
+            # Log the request attempt
+            logger.info(f"Attempting to fetch data from {endpoint}")
+            
+            response = requests.get(endpoint, headers=headers, timeout=10)
+            
+            # Log the response status
+            logger.info(f"Response status code: {response.status_code}")
+            
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
             logger.error(f"Error fetching 24hr ticker data: {e}")
+            if hasattr(e, 'response') and e.response and hasattr(e.response, 'text'):
+                logger.error(f"Response text: {e.response.text}")
             return None
     
     @staticmethod
@@ -57,15 +73,31 @@ class BinanceAPI:
         }
         
         try:
-            # Add user-agent header to avoid potential blockage
+            # Enhanced headers to avoid geo-restrictions
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'application/json',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+                'Referer': 'https://www.binance.com/',
+                'X-Requested-With': 'XMLHttpRequest'
             }
-            response = requests.get(endpoint, params=params, headers=headers)
+            
+            # Log the request attempt
+            logger.info(f"Attempting to fetch klines for {symbol} from {endpoint}")
+            
+            response = requests.get(endpoint, params=params, headers=headers, timeout=10)
+            
+            # Log the response status
+            logger.info(f"Response status code: {response.status_code}")
+            
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
             logger.error(f"Error fetching klines for {symbol}: {e}")
+            if hasattr(e, 'response') and e.response and hasattr(e.response, 'text'):
+                logger.error(f"Response text: {e.response.text}")
             return None
     
     @staticmethod
@@ -79,13 +111,29 @@ class BinanceAPI:
         endpoint = f"{BinanceAPI.BASE_URL}/exchangeInfo"
         
         try:
-            # Add user-agent header to avoid potential blockage
+            # Enhanced headers to avoid geo-restrictions
             headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                'Accept': 'application/json',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache',
+                'Referer': 'https://www.binance.com/',
+                'X-Requested-With': 'XMLHttpRequest'
             }
-            response = requests.get(endpoint, headers=headers)
+            
+            # Log the request attempt
+            logger.info(f"Attempting to fetch exchange info from {endpoint}")
+            
+            response = requests.get(endpoint, headers=headers, timeout=10)
+            
+            # Log the response status
+            logger.info(f"Response status code: {response.status_code}")
+            
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
             logger.error(f"Error fetching exchange info: {e}")
+            if hasattr(e, 'response') and e.response and hasattr(e.response, 'text'):
+                logger.error(f"Response text: {e.response.text}")
             return None

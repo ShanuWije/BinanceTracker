@@ -11,7 +11,8 @@ logger = logging.getLogger(__name__)
 class BinanceAPI:
     """Class to interact with the Binance public API."""
     
-    BASE_URL = "https://api.binance.com/api/v3"
+    # Use Binance.US API as an alternative that may have fewer restrictions
+    BASE_URL = "https://api.binance.us/api/v3"
     
     @staticmethod
     def fetch_24hr_ticker_data() -> Optional[List[Dict]]:
@@ -24,7 +25,11 @@ class BinanceAPI:
         endpoint = f"{BinanceAPI.BASE_URL}/ticker/24hr"
         
         try:
-            response = requests.get(endpoint)
+            # Add user-agent header to avoid potential blockage
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get(endpoint, headers=headers)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:
@@ -52,7 +57,11 @@ class BinanceAPI:
         }
         
         try:
-            response = requests.get(endpoint, params=params)
+            # Add user-agent header to avoid potential blockage
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            response = requests.get(endpoint, params=params, headers=headers)
             response.raise_for_status()
             return response.json()
         except requests.exceptions.RequestException as e:

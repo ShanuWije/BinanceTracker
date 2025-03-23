@@ -39,10 +39,12 @@ class DataProcessor:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
         
         # Filter out non-standard trading pairs (keep only USDT pairs for simplicity)
-        df = df[df['symbol'].str.endswith('USDT')]
+        # For Binance.US, they use USD as base currency more often
+        df = df[df['symbol'].str.endswith('USD') | df['symbol'].str.endswith('USDT')]
         
         # Calculate additional metrics
-        df['baseAsset'] = df['symbol'].str.replace('USDT', '')
+        # Handle both USD and USDT pairs
+        df['baseAsset'] = df['symbol'].str.replace('USD$|USDT$', '', regex=True)
         
         return df
     

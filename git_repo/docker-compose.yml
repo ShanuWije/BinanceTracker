@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+  crypto-tracker:
+    build: .
+    ports:
+      - "5000:5000"
+    restart: always
+    volumes:
+      - ./data:/app/data  # For any data that needs to be persisted
+    environment:
+      - STREAMLIT_SERVER_PORT=5000
+      - STREAMLIT_SERVER_HEADLESS=true
+      - STREAMLIT_SERVER_ADDRESS=0.0.0.0
+
+  # Uncomment to add Nginx as a reverse proxy
+  # nginx:
+  #   image: nginx:latest
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/conf.d:/etc/nginx/conf.d
+  #     - ./nginx/ssl:/etc/nginx/ssl
+  #     - ./nginx/www:/var/www/html
+  #   restart: always
+  #   depends_on:
+  #     - crypto-tracker

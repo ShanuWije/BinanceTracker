@@ -60,7 +60,7 @@ main_container = st.container()
 def display_data():
     with main_container:
         # Show a spinner while loading data
-        with st.spinner("Fetching latest data from Binance Futures..."):
+        with st.spinner("Fetching latest data from Binance US..."):
             df, error = load_data(period, num_coins)
         
         # Display last updated time
@@ -178,20 +178,23 @@ if auto_refresh:
             time.sleep(1)
         
         # Clear cache and refresh data
-        load_data.clear()
+        st.cache_data.clear()
         countdown_placeholder.empty()
         st.rerun()
 else:
-    st.sidebar.button("Refresh Data", on_click=lambda: load_data.clear())
+    # Manual refresh button
+    if st.sidebar.button("Refresh Data"):
+        st.cache_data.clear()
+        st.rerun()
 
 # Add some information in the sidebar
 st.sidebar.markdown("---")
 st.sidebar.markdown("""
 ### About
-This app displays cryptocurrencies with the highest trading volume on Binance Futures market.
+This app displays cryptocurrencies with the highest trading volume on Binance US spot market.
 
 - **24h**: Shows data for the last 24 hours
 - **7d**: Shows data for the last 7 days
 
-Data is fetched directly from the Binance Futures API.
+Data is fetched directly from the Binance US API.
 """)

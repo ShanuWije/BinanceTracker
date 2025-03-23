@@ -1,8 +1,12 @@
 import requests
 import pandas as pd
 import time
+import hmac
+import hashlib
+import os
 from typing import Dict, List, Optional, Tuple, Union
 import logging
+from urllib.parse import urlencode
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -13,6 +17,32 @@ class BinanceAPI:
     
     # Use Binance Futures API
     BASE_URL = "https://fapi.binance.com/fapi/v1"
+    
+    # API credentials
+    API_KEY = os.environ.get('BINANCE_API_KEY')
+    API_SECRET = os.environ.get('BINANCE_API_SECRET')
+    
+    @staticmethod
+    def _generate_signature(query_string: str) -> str:
+        """
+        Generate HMAC SHA256 signature for the query string
+        
+        Args:
+            query_string (str): Query string to sign
+            
+        Returns:
+            str: Hexadecimal signature
+        """
+        secret = BinanceAPI.API_SECRET
+        if not secret:
+            logger.error("API Secret is not set!")
+            return ""
+            
+        return hmac.new(
+            secret.encode('utf-8'),
+            query_string.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
     
     @staticmethod
     def fetch_24hr_ticker_data() -> Optional[List[Dict]]:
@@ -25,21 +55,33 @@ class BinanceAPI:
         endpoint = f"{BinanceAPI.BASE_URL}/ticker/24hr"
         
         try:
-            # Enhanced headers to avoid geo-restrictions
+            # Add timestamp for API authentication
+            timestamp = int(time.time() * 1000)
+            
+            # Create parameter string with timestamp
+            params = {
+                'timestamp': timestamp
+            }
+            
+            # Generate signature
+            query_string = urlencode(params)
+            signature = BinanceAPI._generate_signature(query_string)
+            params['signature'] = signature
+            
+            # Add API key to headers
             headers = {
+                'X-MBX-APIKEY': BinanceAPI.API_KEY,
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Accept': 'application/json',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache',
-                'Referer': 'https://www.binance.com/',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Pragma': 'no-cache'
             }
             
             # Log the request attempt
-            logger.info(f"Attempting to fetch data from {endpoint}")
+            logger.info(f"Attempting to fetch data from {endpoint} with authenticated request")
             
-            response = requests.get(endpoint, headers=headers, timeout=10)
+            response = requests.get(endpoint, headers=headers, params=params, timeout=10)
             
             # Log the response status
             logger.info(f"Response status code: {response.status_code}")
@@ -66,26 +108,36 @@ class BinanceAPI:
             Optional[List[List]]: List of kline data or None if request fails
         """
         endpoint = f"{BinanceAPI.BASE_URL}/klines"
-        params = {
-            "symbol": symbol,
-            "interval": interval,
-            "limit": limit
-        }
         
         try:
-            # Enhanced headers to avoid geo-restrictions
+            # Add timestamp for API authentication
+            timestamp = int(time.time() * 1000)
+            
+            # Create parameter string with timestamp and other params
+            params = {
+                "symbol": symbol,
+                "interval": interval,
+                "limit": limit,
+                'timestamp': timestamp
+            }
+            
+            # Generate signature
+            query_string = urlencode(params)
+            signature = BinanceAPI._generate_signature(query_string)
+            params['signature'] = signature
+            
+            # Add API key to headers
             headers = {
+                'X-MBX-APIKEY': BinanceAPI.API_KEY,
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Accept': 'application/json',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache',
-                'Referer': 'https://www.binance.com/',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Pragma': 'no-cache'
             }
             
             # Log the request attempt
-            logger.info(f"Attempting to fetch klines for {symbol} from {endpoint}")
+            logger.info(f"Attempting to fetch klines for {symbol} from {endpoint} with authenticated request")
             
             response = requests.get(endpoint, params=params, headers=headers, timeout=10)
             
@@ -111,21 +163,33 @@ class BinanceAPI:
         endpoint = f"{BinanceAPI.BASE_URL}/exchangeInfo"
         
         try:
-            # Enhanced headers to avoid geo-restrictions
+            # Add timestamp for API authentication
+            timestamp = int(time.time() * 1000)
+            
+            # Create parameter string with timestamp
+            params = {
+                'timestamp': timestamp
+            }
+            
+            # Generate signature
+            query_string = urlencode(params)
+            signature = BinanceAPI._generate_signature(query_string)
+            params['signature'] = signature
+            
+            # Add API key to headers
             headers = {
+                'X-MBX-APIKEY': BinanceAPI.API_KEY,
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                 'Accept': 'application/json',
                 'Accept-Language': 'en-US,en;q=0.9',
                 'Cache-Control': 'no-cache',
-                'Pragma': 'no-cache',
-                'Referer': 'https://www.binance.com/',
-                'X-Requested-With': 'XMLHttpRequest'
+                'Pragma': 'no-cache'
             }
             
             # Log the request attempt
-            logger.info(f"Attempting to fetch exchange info from {endpoint}")
+            logger.info(f"Attempting to fetch exchange info from {endpoint} with authenticated request")
             
-            response = requests.get(endpoint, headers=headers, timeout=10)
+            response = requests.get(endpoint, headers=headers, params=params, timeout=10)
             
             # Log the response status
             logger.info(f"Response status code: {response.status_code}")

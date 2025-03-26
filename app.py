@@ -41,8 +41,24 @@ if view_mode == "Top Volume":
         options=["24h", "7d"],
         index=0
     )
+    
+    # Volume threshold not needed for Top Volume view
+    min_volume = 10000000.0  # Default value, not used in this view
 else:
     period = "24h"  # Default for High Volume Movers
+    
+    # Volume threshold selector for High Volume Movers view
+    min_volume = st.sidebar.slider(
+        "Minimum Volume Threshold (USDT):",
+        min_value=100000.0,
+        max_value=10000000.0,
+        value=1000000.0,
+        step=100000.0,
+        format="%.1f"
+    )
+    
+    # Display the formatted value for better readability
+    st.sidebar.text(f"Current threshold: {min_volume/1000000:.1f}M USDT")
 
 # Number of coins to display
 num_coins = st.sidebar.slider(
@@ -55,12 +71,12 @@ num_coins = st.sidebar.slider(
 
 # Function to load data
 @st.cache_data(ttl=60)  # Cache data for 60 seconds
-def load_data(period, limit, view_mode):
+def load_data(period, limit, view_mode, min_volume=10000000.0):
     try:
         if view_mode == "Top Volume":
             df = DataProcessor.get_top_volume_coins(period=period, limit=limit)
         else:  # High Volume Movers
-            df = DataProcessor.get_high_volume_change_coins(min_volume=10000000.0, limit=limit)
+            df = DataProcessor.get_high_volume_change_coins(min_volume=min_volume, limit=limit)
         return df, None
     except Exception as e:
         logger.error(f"Error loading data: {e}")
@@ -74,11 +90,18 @@ def display_data():
     with main_container:
         # Show a spinner while loading data
         with st.spinner("Fetching latest data from Binance US..."):
-            df, error = load_data(period, num_coins, view_mode)
+            df, error = load_data(period, num_coins, view_mode, min_volume)
         
         # Display last updated time
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         st.text(f"Last updated: {current_time}")
+        
+        # If this is High Volume Movers view, check if the threshold was adjusted
+        if view_mode == "High Volume Movers" and not df.empty and hasattr(df, 'attrs'):
+            attrs = df.attrs
+            if attrs.get('used_adjusted_volume', False):
+                adjusted_min_volume = attrs.get('adjusted_min_volume', 0)
+                st.warning(f"⚠️ The requested volume threshold was too high for current market conditions. Using adjusted minimum volume: {adjusted_min_volume/1000000:.2f}M USDT")
         
         # Check if we have data
         if error:
@@ -96,7 +119,13 @@ def display_data():
             if view_mode == "Top Volume":
                 st.subheader(f"Top {len(df)} Coins by Volume ({period})")
             else:
-                st.subheader(f"Top {len(df)} High Volume Movers (>10M USDT)")
+                # Check if we're using an adjusted threshold
+                if not df.empty and hasattr(df, 'attrs') and df.attrs.get('used_adjusted_volume', False):
+                    adjusted_min_volume = df.attrs.get('adjusted_min_volume', 0)
+                    threshold_display = f"{adjusted_min_volume/1000000:.1f}M"
+                else:
+                    threshold_display = f"{min_volume/1000000:.1f}M"
+                st.subheader(f"Top {len(df)} High Volume Movers (>{threshold_display} USDT)")
             
             # Format and display the table
             display_df = df.copy()
@@ -138,7 +167,13 @@ def display_data():
                 y_axis_title = "Volume (USDT)"
             else:
                 st.subheader("Price Change Comparison")
-                chart_title = "Top 10 High Volume Movers (>10M USDT)"
+                # Check if we're using an adjusted threshold
+                if not df.empty and hasattr(df, 'attrs') and df.attrs.get('used_adjusted_volume', False):
+                    adjusted_min_volume = df.attrs.get('adjusted_min_volume', 0)
+                    threshold_display = f"{adjusted_min_volume/1000000:.1f}M"
+                else:
+                    threshold_display = f"{min_volume/1000000:.1f}M"
+                chart_title = f"Top 10 High Volume Movers (>{threshold_display} USDT)"
                 y_axis_title = "Price Change (%)"
             
             # Prepare data for the chart
@@ -255,7 +290,7 @@ This app displays cryptocurrencies with the highest trading volume on Binance US
 
 #### Views:
 - **Top Volume**: Shows coins with highest trading volume
-- **High Volume Movers**: Shows coins with highest price change % that have >10M USDT in 24h volume
+- **High Volume Movers**: Shows coins with highest price change % that have a minimum volume threshold (adjustable)
 
 #### Time Periods (for Top Volume view):
 - **24h**: Shows data for the last 24 hours

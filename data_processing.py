@@ -197,15 +197,32 @@ class DataProcessor:
         logger.info(f"Median volume: {df['quoteVolume'].median():.2f} USDT")
         logger.info(f"Pairs with > {min_volume} USDT volume: {len(df[df['quoteVolume'] >= min_volume])}")
             
-        # Filter by minimum volume
-        high_volume_df = df[df['quoteVolume'] >= min_volume]
+        # Check if requested minimum volume is too high for current market conditions
+        max_available_volume = df['quoteVolume'].max()
         
-        if high_volume_df.empty:
-            logger.warning(f"No pairs found with volume >= {min_volume} USDT")
-            # Use top 25% by volume instead if no pairs meet the minimum volume requirement
-            min_volume = df['quoteVolume'].quantile(0.75)
-            logger.info(f"Using adjusted minimum volume: {min_volume:.2f} USDT")
+        # Filter by minimum volume
+        if max_available_volume < min_volume:
+            # Requested volume threshold is higher than any available pair
+            logger.warning(f"Requested min volume {min_volume} USDT is higher than max available volume {max_available_volume:.2f} USDT")
+            
+            # Use top 25% by volume instead
+            adjusted_min_volume = df['quoteVolume'].quantile(0.75)
+            logger.info(f"Using adjusted minimum volume: {adjusted_min_volume:.2f} USDT")
+            high_volume_df = df[df['quoteVolume'] >= adjusted_min_volume]
+            
+            # Store the adjusted minimum volume to display in UI
+            df.attrs['adjusted_min_volume'] = adjusted_min_volume
+            df.attrs['used_adjusted_volume'] = True
+        else:
+            # Use the requested minimum volume
             high_volume_df = df[df['quoteVolume'] >= min_volume]
+            df.attrs['used_adjusted_volume'] = False
+            
+        # If still empty (which shouldn't happen with the quantile approach), use top 20 pairs
+        if high_volume_df.empty:
+            logger.warning("Still no pairs after adjustment, using top 20 by volume")
+            high_volume_df = df.sort_values(by='quoteVolume', ascending=False).head(20)
+            df.attrs['used_adjusted_volume'] = True
             
         # Sort by price change percentage (absolute value for largest changes in either direction)
         high_volume_df = high_volume_df.sort_values(by='priceChangePercent', ascending=False).head(limit)

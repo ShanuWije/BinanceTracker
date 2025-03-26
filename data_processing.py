@@ -166,3 +166,46 @@ class DataProcessor:
             return result
         
         return pd.DataFrame()
+        
+    @staticmethod
+    def get_high_volume_change_coins(min_volume: float = 100000000.0, limit: int = 20) -> pd.DataFrame:
+        """
+        Get coins with the highest 24-hour price change percentage that also have more than
+        the specified minimum volume in USDT.
+        
+        Args:
+            min_volume (float): Minimum 24-hour USDT volume threshold (default: 100 million USDT)
+            limit (int): Number of top coins to return
+            
+        Returns:
+            pd.DataFrame: DataFrame with high volume change coins
+        """
+        # Get 24-hour data
+        ticker_data = BinanceAPI.fetch_24hr_ticker_data()
+        if not ticker_data:
+            return pd.DataFrame()
+        
+        df = DataProcessor.process_24hr_ticker_data(ticker_data)
+        
+        if df.empty:
+            return df
+            
+        # Filter by minimum volume
+        high_volume_df = df[df['quoteVolume'] >= min_volume]
+        
+        if high_volume_df.empty:
+            return pd.DataFrame()
+            
+        # Sort by price change percentage (absolute value for largest changes in either direction)
+        high_volume_df = high_volume_df.sort_values(by='priceChangePercent', ascending=False).head(limit)
+        
+        # Select and rename columns for display
+        result = high_volume_df[['symbol', 'baseAsset', 'lastPrice', 'priceChangePercent', 'quoteVolume']]
+        result = result.rename(columns={
+            'baseAsset': 'Coin',
+            'lastPrice': 'Price (USDT)',
+            'priceChangePercent': 'Change 24h (%)',
+            'quoteVolume': 'Volume (USDT)'
+        })
+        
+        return result

@@ -27,12 +27,22 @@ Data is automatically refreshed every minute.
 # Sidebar for filters
 st.sidebar.header("Filters")
 
-# Time period selector
-period = st.sidebar.radio(
-    "Select Time Period:",
-    options=["24h", "7d"],
+# Tab selector
+view_mode = st.sidebar.radio(
+    "Select View:",
+    options=["Top Volume", "High Volume Movers"],
     index=0
 )
+
+# Time period selector - only show for Top Volume view
+if view_mode == "Top Volume":
+    period = st.sidebar.radio(
+        "Select Time Period:",
+        options=["24h", "7d"],
+        index=0
+    )
+else:
+    period = "24h"  # Default for High Volume Movers
 
 # Number of coins to display
 num_coins = st.sidebar.slider(
@@ -45,9 +55,12 @@ num_coins = st.sidebar.slider(
 
 # Function to load data
 @st.cache_data(ttl=60)  # Cache data for 60 seconds
-def load_data(period, limit):
+def load_data(period, limit, view_mode):
     try:
-        df = DataProcessor.get_top_volume_coins(period=period, limit=limit)
+        if view_mode == "Top Volume":
+            df = DataProcessor.get_top_volume_coins(period=period, limit=limit)
+        else:  # High Volume Movers
+            df = DataProcessor.get_high_volume_change_coins(min_volume=100000000.0, limit=limit)
         return df, None
     except Exception as e:
         logger.error(f"Error loading data: {e}")
@@ -61,7 +74,7 @@ def display_data():
     with main_container:
         # Show a spinner while loading data
         with st.spinner("Fetching latest data from Binance US..."):
-            df, error = load_data(period, num_coins)
+            df, error = load_data(period, num_coins, view_mode)
         
         # Display last updated time
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -80,7 +93,10 @@ def display_data():
         col1, col2 = st.columns([3, 2])
         
         with col1:
-            st.subheader(f"Top {len(df)} Coins by Volume ({period})")
+            if view_mode == "Top Volume":
+                st.subheader(f"Top {len(df)} Coins by Volume ({period})")
+            else:
+                st.subheader(f"Top {len(df)} High Volume Movers (>100M USDT)")
             
             # Format and display the table
             display_df = df.copy()
@@ -116,44 +132,88 @@ def display_data():
             )
         
         with col2:
-            st.subheader("Volume Comparison")
+            if view_mode == "Top Volume":
+                st.subheader("Volume Comparison")
+                chart_title = f"Top 10 Coins by Volume ({period})"
+                y_axis_title = "Volume (USDT)"
+            else:
+                st.subheader("Price Change Comparison")
+                chart_title = "Top 10 High Volume Movers (>100M USDT)"
+                y_axis_title = "Price Change (%)"
             
             # Prepare data for the chart
             chart_df = df.copy().head(10)  # Top 10 for chart
             volume_col = 'Volume (USDT)' if 'Volume (USDT)' in chart_df.columns else 'Volume 7d (USDT)'
             change_col = 'Change 24h (%)' if 'Change 24h (%)' in chart_df.columns else 'Change 7d (%)'
             
-            # Create volume bar chart
-            fig1 = px.bar(
-                chart_df,
-                x='Coin',
-                y=volume_col,
-                title=f"Top 10 Coins by Volume ({period})",
-                color=change_col,
-                color_continuous_scale=['red', 'lightgrey', 'green'],
-                color_continuous_midpoint=0
-            )
-            fig1.update_layout(
-                xaxis_title="Coin",
-                yaxis_title="Volume (USDT)",
-                coloraxis_colorbar_title="Price Change (%)"
-            )
+            # First chart - either volume or price change depending on view
+            if view_mode == "Top Volume":
+                # Create volume bar chart
+                fig1 = px.bar(
+                    chart_df,
+                    x='Coin',
+                    y=volume_col,
+                    title=chart_title,
+                    color=change_col,
+                    color_continuous_scale=['red', 'lightgrey', 'green'],
+                    color_continuous_midpoint=0
+                )
+                fig1.update_layout(
+                    xaxis_title="Coin",
+                    yaxis_title=y_axis_title,
+                    coloraxis_colorbar_title="Price Change (%)"
+                )
+            else:
+                # Create price change bar chart for high volume movers
+                fig1 = px.bar(
+                    chart_df,
+                    x='Coin',
+                    y=change_col,
+                    title=chart_title,
+                    color=change_col,
+                    color_continuous_scale=['red', 'lightgrey', 'green'],
+                    color_continuous_midpoint=0
+                )
+                fig1.update_layout(
+                    xaxis_title="Coin",
+                    yaxis_title=y_axis_title
+                )
+            
             st.plotly_chart(fig1, use_container_width=True)
             
-            # Create price change comparison chart
-            fig2 = px.bar(
-                chart_df,
-                x='Coin',
-                y=change_col,
-                title=f"Price Change ({period})",
-                color=change_col,
-                color_continuous_scale=['red', 'lightgrey', 'green'],
-                color_continuous_midpoint=0
-            )
-            fig2.update_layout(
-                xaxis_title="Coin",
-                yaxis_title="Price Change (%)"
-            )
+            # Second chart - either price change or volume depending on view
+            if view_mode == "Top Volume":
+                # Create price change comparison chart
+                fig2 = px.bar(
+                    chart_df,
+                    x='Coin',
+                    y=change_col,
+                    title=f"Price Change ({period})",
+                    color=change_col,
+                    color_continuous_scale=['red', 'lightgrey', 'green'],
+                    color_continuous_midpoint=0
+                )
+                fig2.update_layout(
+                    xaxis_title="Coin",
+                    yaxis_title="Price Change (%)"
+                )
+            else:
+                # Create volume comparison chart for high volume movers
+                fig2 = px.bar(
+                    chart_df,
+                    x='Coin',
+                    y=volume_col,
+                    title="Volume Comparison",
+                    color=change_col,
+                    color_continuous_scale=['red', 'lightgrey', 'green'],
+                    color_continuous_midpoint=0
+                )
+                fig2.update_layout(
+                    xaxis_title="Coin",
+                    yaxis_title="Volume (USDT)",
+                    coloraxis_colorbar_title="Price Change (%)"
+                )
+            
             st.plotly_chart(fig2, use_container_width=True)
 
 # Initial data display
@@ -193,6 +253,11 @@ st.sidebar.markdown("""
 ### About
 This app displays cryptocurrencies with the highest trading volume on Binance US spot market.
 
+#### Views:
+- **Top Volume**: Shows coins with highest trading volume
+- **High Volume Movers**: Shows coins with highest price change % that have >100M USDT in 24h volume
+
+#### Time Periods (for Top Volume view):
 - **24h**: Shows data for the last 24 hours
 - **7d**: Shows data for the last 7 days
 

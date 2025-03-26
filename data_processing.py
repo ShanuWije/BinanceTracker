@@ -168,13 +168,13 @@ class DataProcessor:
         return pd.DataFrame()
         
     @staticmethod
-    def get_high_volume_change_coins(min_volume: float = 100000000.0, limit: int = 20) -> pd.DataFrame:
+    def get_high_volume_change_coins(min_volume: float = 10000000.0, limit: int = 20) -> pd.DataFrame:
         """
         Get coins with the highest 24-hour price change percentage that also have more than
         the specified minimum volume in USDT.
         
         Args:
-            min_volume (float): Minimum 24-hour USDT volume threshold (default: 100 million USDT)
+            min_volume (float): Minimum 24-hour USDT volume threshold (default: 10 million USDT)
             limit (int): Number of top coins to return
             
         Returns:
@@ -189,12 +189,23 @@ class DataProcessor:
         
         if df.empty:
             return df
+        
+        # Log volume statistics to help debug
+        logger.info(f"Total pairs: {len(df)}")
+        logger.info(f"Max volume: {df['quoteVolume'].max():.2f} USDT")
+        logger.info(f"Min volume: {df['quoteVolume'].min():.2f} USDT")
+        logger.info(f"Median volume: {df['quoteVolume'].median():.2f} USDT")
+        logger.info(f"Pairs with > {min_volume} USDT volume: {len(df[df['quoteVolume'] >= min_volume])}")
             
         # Filter by minimum volume
         high_volume_df = df[df['quoteVolume'] >= min_volume]
         
         if high_volume_df.empty:
-            return pd.DataFrame()
+            logger.warning(f"No pairs found with volume >= {min_volume} USDT")
+            # Use top 25% by volume instead if no pairs meet the minimum volume requirement
+            min_volume = df['quoteVolume'].quantile(0.75)
+            logger.info(f"Using adjusted minimum volume: {min_volume:.2f} USDT")
+            high_volume_df = df[df['quoteVolume'] >= min_volume]
             
         # Sort by price change percentage (absolute value for largest changes in either direction)
         high_volume_df = high_volume_df.sort_values(by='priceChangePercent', ascending=False).head(limit)

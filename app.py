@@ -60,7 +60,7 @@ def load_data(period, limit, view_mode):
         if view_mode == "Top Volume":
             df = DataProcessor.get_top_volume_coins(period=period, limit=limit)
         else:  # High Volume Movers
-            df = DataProcessor.get_high_volume_change_coins(min_volume=100000000.0, limit=limit)
+            df = DataProcessor.get_high_volume_change_coins(min_volume=10000000.0, limit=limit)
         return df, None
     except Exception as e:
         logger.error(f"Error loading data: {e}")
@@ -96,7 +96,7 @@ def display_data():
             if view_mode == "Top Volume":
                 st.subheader(f"Top {len(df)} Coins by Volume ({period})")
             else:
-                st.subheader(f"Top {len(df)} High Volume Movers (>100M USDT)")
+                st.subheader(f"Top {len(df)} High Volume Movers (>10M USDT)")
             
             # Format and display the table
             display_df = df.copy()
@@ -138,7 +138,7 @@ def display_data():
                 y_axis_title = "Volume (USDT)"
             else:
                 st.subheader("Price Change Comparison")
-                chart_title = "Top 10 High Volume Movers (>100M USDT)"
+                chart_title = "Top 10 High Volume Movers (>10M USDT)"
                 y_axis_title = "Price Change (%)"
             
             # Prepare data for the chart
@@ -255,7 +255,7 @@ This app displays cryptocurrencies with the highest trading volume on Binance US
 
 #### Views:
 - **Top Volume**: Shows coins with highest trading volume
-- **High Volume Movers**: Shows coins with highest price change % that have >100M USDT in 24h volume
+- **High Volume Movers**: Shows coins with highest price change % that have >10M USDT in 24h volume
 
 #### Time Periods (for Top Volume view):
 - **24h**: Shows data for the last 24 hours

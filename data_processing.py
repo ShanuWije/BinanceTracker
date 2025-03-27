@@ -14,10 +14,10 @@ class DataProcessor:
     @staticmethod
     def process_24hr_ticker_data(data: List[Dict]) -> pd.DataFrame:
         """
-        Process 24-hour ticker data into a DataFrame.
+        Process 24-hour ticker data into a DataFrame for Binance Futures.
         
         Args:
-            data (List[Dict]): Raw ticker data from Binance API
+            data (List[Dict]): Raw ticker data from Binance Futures API
             
         Returns:
             pd.DataFrame: Processed DataFrame with relevant information
@@ -27,24 +27,32 @@ class DataProcessor:
         
         df = pd.DataFrame(data)
         
-        # Convert numeric columns
+        # Convert numeric columns - column names may be different in futures API
         numeric_columns = [
             'volume', 'quoteVolume', 'priceChange', 'priceChangePercent',
             'weightedAvgPrice', 'lastPrice', 'lastQty', 'openPrice',
-            'highPrice', 'lowPrice', 'prevClosePrice', 'count'
+            'highPrice', 'lowPrice', 'prevClosePrice', 'count', 
+            'baseVolume', 'quoteVolume'
         ]
+        
+        # In futures API the volume fields might have different names
+        if 'baseVolume' in df.columns and 'volume' not in df.columns:
+            df['volume'] = df['baseVolume']
+            
+        if 'quoteVolume' not in df.columns and 'volume' in df.columns and 'lastPrice' in df.columns:
+            # If quoteVolume is missing, calculate it
+            df['quoteVolume'] = df['volume'] * df['lastPrice']
         
         for col in numeric_columns:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
         
-        # In futures market, most pairs end with USDT, BUSD, or other stablecoins
-        # For simplicity, we'll keep pairs ending with common stablecoins
-        df = df[df['symbol'].str.endswith('USDT') | df['symbol'].str.endswith('BUSD')]
+        # In futures market, most pairs are perpetual contracts ending with USDT
+        df = df[df['symbol'].str.endswith('USDT') | df['symbol'].str.endswith('BUSD') | df['symbol'].str.contains('USDT_')]
         
-        # Calculate additional metrics
         # Extract the base asset (e.g., BTC from BTCUSDT)
-        df['baseAsset'] = df['symbol'].str.replace('USDT$|BUSD$', '', regex=True)
+        # Futures symbols may have different patterns (like BTCUSDT_PERP)
+        df['baseAsset'] = df['symbol'].str.replace('USDT$|BUSD$|USDT_.*$|BUSD_.*$', '', regex=True)
         
         return df
     

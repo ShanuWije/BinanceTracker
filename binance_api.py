@@ -10,10 +10,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class BinanceAPI:
-    """Class to interact with the Binance US public API."""
+    """Class to interact with the Binance Futures API."""
     
-    # Use Binance US API (spot market)
-    BASE_URL = "https://api.binance.us/api/v3"
+    # Use Binance Futures API
+    BASE_URL = "https://fapi.binance.com/fapi/v1"
     
     @staticmethod
     def fetch_24hr_ticker_data() -> Optional[List[Dict]]:

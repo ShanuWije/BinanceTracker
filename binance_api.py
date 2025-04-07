@@ -1,6 +1,9 @@
 import requests
 import pandas as pd
 import time
+import hmac
+import hashlib
+import os
 from typing import Dict, List, Optional, Tuple, Union
 import logging
 from urllib.parse import urlencode
@@ -10,25 +13,47 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class BinanceAPI:
-    """Class to interact with the Binance US API."""
+    """Class to interact with the Binance Futures API."""
     
-    # Use Binance US API (public endpoints)
-    BASE_URL = "https://api.binance.us/api/v3"
+    # Use Binance Futures API
+    BASE_URL = "https://fapi.binance.com/fapi/v1"
+    
+    # Get API credentials from environment variables
+    API_KEY = os.environ.get("BINANCE_API_KEY", "")
+    API_SECRET = os.environ.get("BINANCE_API_SECRET", "")
     
     @staticmethod
-    def _create_headers():
+    def _get_signature(query_string: str) -> str:
         """
-        Create request headers.
+        Generate HMAC SHA256 signature for the request.
+        
+        Args:
+            query_string (str): The query string to sign
+            
+        Returns:
+            str: The signature
+        """
+        return hmac.new(
+            BinanceAPI.API_SECRET.encode('utf-8'),
+            query_string.encode('utf-8'),
+            hashlib.sha256
+        ).hexdigest()
+    
+    @staticmethod
+    def _create_auth_headers():
+        """
+        Create authentication headers for the request.
         
         Returns:
-            dict: Headers for API requests
+            dict: Headers with authentication information
         """
         return {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             'Accept': 'application/json',
             'Accept-Language': 'en-US,en;q=0.9',
             'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
+            'Pragma': 'no-cache',
+            'X-MBX-APIKEY': BinanceAPI.API_KEY
         }
     
     @staticmethod
@@ -39,18 +64,36 @@ class BinanceAPI:
         Returns:
             Optional[List[Dict]]: List of ticker data or None if request fails
         """
+        # Check if API credentials are available
+        if not BinanceAPI.API_KEY or not BinanceAPI.API_SECRET:
+            logger.error("API credentials missing. Please set BINANCE_API_KEY and BINANCE_API_SECRET environment variables.")
+            return None
+            
         endpoint = f"{BinanceAPI.BASE_URL}/ticker/24hr"
         
         try:
-            # Get request headers
-            headers = BinanceAPI._create_headers()
+            # Get authentication headers
+            headers = BinanceAPI._create_auth_headers()
             
             # Log the request attempt
             logger.info(f"Attempting to fetch data from {endpoint}")
             
+            # Create timestamp for authentication
+            timestamp = int(time.time() * 1000)
+            params = {'timestamp': timestamp}
+            
+            # Create query string for signature
+            query_string = urlencode(params)
+            
+            # Generate signature and add to params
+            signature = BinanceAPI._get_signature(query_string)
+            params['signature'] = signature
+            
+            # Make the request
             response = requests.get(
                 endpoint, 
                 headers=headers, 
+                params=params,
                 timeout=10
             )
             
@@ -78,6 +121,11 @@ class BinanceAPI:
         Returns:
             Optional[List[List]]: List of kline data or None if request fails
         """
+        # Check if API credentials are available
+        if not BinanceAPI.API_KEY or not BinanceAPI.API_SECRET:
+            logger.error("API credentials missing. Please set BINANCE_API_KEY and BINANCE_API_SECRET environment variables.")
+            return None
+            
         endpoint = f"{BinanceAPI.BASE_URL}/klines"
         
         try:
@@ -98,11 +146,9 @@ class BinanceAPI:
             # Create query string for signature
             query_string = urlencode(params)
             
-            # Add signature if we have API secret
-            if BinanceAPI.API_SECRET:
-                signature = BinanceAPI._get_signature(query_string)
-                params['signature'] = signature  # This is a string value, not an int
-                logger.info("Adding authentication to klines request")
+            # Generate signature and add to params
+            signature = BinanceAPI._get_signature(query_string)
+            params['signature'] = signature
             
             response = requests.get(
                 endpoint, 
@@ -130,6 +176,11 @@ class BinanceAPI:
         Returns:
             Optional[Dict]: Exchange information or None if request fails
         """
+        # Check if API credentials are available
+        if not BinanceAPI.API_KEY or not BinanceAPI.API_SECRET:
+            logger.error("API credentials missing. Please set BINANCE_API_KEY and BINANCE_API_SECRET environment variables.")
+            return None
+            
         endpoint = f"{BinanceAPI.BASE_URL}/exchangeInfo"
         
         try:
@@ -139,22 +190,21 @@ class BinanceAPI:
             # Log the request attempt
             logger.info(f"Attempting to fetch exchange info from {endpoint}")
             
-            # Add timestamp for authentication
-            params = {'timestamp': int(time.time() * 1000)}
+            # Create timestamp for authentication
+            timestamp = int(time.time() * 1000)
+            params = {'timestamp': timestamp}
             
             # Create query string for signature
             query_string = urlencode(params)
             
-            # Add signature if we have API secret
-            if BinanceAPI.API_SECRET:
-                signature = BinanceAPI._get_signature(query_string)
-                params['signature'] = signature  # This is a string value, not an int
-                logger.info("Adding authentication to exchange info request")
+            # Generate signature and add to params
+            signature = BinanceAPI._get_signature(query_string)
+            params['signature'] = signature
             
             response = requests.get(
                 endpoint, 
                 headers=headers, 
-                params=params if BinanceAPI.API_SECRET else None,
+                params=params,
                 timeout=10
             )
             

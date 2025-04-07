@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.express as px
 import time
 import logging
+import os
 from datetime import datetime
 from data_processing import DataProcessor
 
@@ -20,7 +21,7 @@ st.set_page_config(
 # App title and description
 st.title("📊 Binance Futures High Volume Cryptocurrencies")
 st.markdown("""
-This app displays real-time data for the highest volume cryptocurrency futures on Binance Futures market.
+This app displays real-time data for the highest volume cryptocurrency futures on Binance Futures.
 Data is automatically refreshed every minute.
 """)
 
@@ -88,6 +89,11 @@ main_container = st.container()
 # Function to display data
 def display_data():
     with main_container:
+        # Check if API keys are set
+        if not os.environ.get("BINANCE_API_KEY") or not os.environ.get("BINANCE_API_SECRET"):
+            st.error("⚠️ API credentials missing. Please set BINANCE_API_KEY and BINANCE_API_SECRET environment variables.")
+            return
+    
         # Show a spinner while loading data
         with st.spinner("Fetching latest data from Binance Futures..."):
             df, error = load_data(period, num_coins, view_mode, min_volume)
